@@ -49,6 +49,33 @@ const CreateTemplate = () => {
   const [formData, setFormData] =
     useState<Omit<Template, "template_id">>(initialFormData);
 
+  const defaultTemplates: Omit<Template, "template_id">[] = [
+    {
+      template_name: "Primary Care Follow-up",
+      encounter_type: "primary_care_follow_up",
+      default_reason: "Routine follow-up visit",
+      default_notes: "Patient presents for regular follow-up.",
+      default_diagnosis_codes: "Z09",
+      default_procedure_codes: "99213",
+    },
+    {
+      template_name: "Cardiology Consultation",
+      encounter_type: "cardiology_consultation",
+      default_reason: "Evaluation of chest pain",
+      default_notes: "Initial cardiology consult including EKG.",
+      default_diagnosis_codes: "I20.9",
+      default_procedure_codes: "93000",
+    },
+    {
+      template_name: "Dermatology Procedure",
+      encounter_type: "dermatology_procedure",
+      default_reason: "Removal of skin lesion",
+      default_notes: "Lesion excision performed with local anesthesia.",
+      default_diagnosis_codes: "D23.9",
+      default_procedure_codes: "11600",
+    },
+  ];
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -60,8 +87,19 @@ const CreateTemplate = () => {
     setIsLoadingTemplates(true); // Start loading for template data
     try {
       const res = await getTemplateApi(token);
-      console.log(res, "template");
-      setTemplates(res?.data || []);
+      const data = res?.data || [];
+      setTemplates(data);
+      if (data.length === 0) {
+        try {
+          await Promise.all(
+            defaultTemplates.map((t) => createTemplateApi(t, token))
+          );
+          const seeded = await getTemplateApi(token);
+          setTemplates(seeded?.data || []);
+        } catch (seedErr) {
+          console.error("Failed to seed default templates:", seedErr);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch templates:", error);
       toast.error("Failed to fetch templates");
