@@ -27,17 +27,7 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { getAllPatientsAPI } from "@/services/operations/patient";
-
-// Interface for Template data from API
-interface Template {
-  template_id: number;
-  template_name: string;
-  encounter_type: string;
-  default_reason: string;
-  default_notes: string;
-  default_diagnosis_codes: string;
-  default_procedure_codes: string;
-}
+import type { Template } from "@/types/encounter";
 
 // Interface for Patient data from API
 interface Patient {
