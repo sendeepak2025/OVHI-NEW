@@ -24,8 +24,9 @@ import EditEncounter from './EditEncounter';
 import { EncounterActionsPanel } from '@/components/encounters/EncounterActionsPanel';
 import { EncounterFaxDialog } from '@/components/encounters/EncounterFaxDialog';
 import { EncounterReferralDialog } from '@/components/encounters/EncounterReferralDialog';
-import { MedicalRecordsSelectorDialog } from '@/components/encounters/MedicalRecordsSelectorDialog';
 import { Patient, MedicalRecord } from '@/types/dataTypes';
+import { getSinglePatientAPI } from '@/services/operations/patient';
+import { getDocApi } from '@/services/operations/documents';
 
 
 interface PatientEncounterData {
@@ -63,40 +64,71 @@ const PatientEncounter = () => {
   const [selectedEncounterForAction, setSelectedEncounterForAction] = useState<PatientEncounterData | null>(null);
   const [isSmartWorkflowOpen, setIsSmartWorkflowOpen] = useState(false);
   
-  const {id} = useParams();
+  const { id } = useParams();
 
-  // Mock patient and medical records data - replace with actual API calls
-  const mockPatient: Patient = {
-    patientId: id || '',
-    firstName: 'John',
-    lastName: 'Doe',
-    birthDate: '1980-01-01',
-    email: 'john.doe@email.com',
-    phone: '555-123-4567'
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
+  const [patientLoading, setPatientLoading] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [patientError, setPatientError] = useState<string | null>(null);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+
+  const fetchPatient = async () => {
+    if (!id) return;
+    setPatientLoading(true);
+    setPatientError(null);
+    try {
+      const res = await getSinglePatientAPI(id, token);
+      if (res) {
+        const mapped: Patient = {
+          patientId: res.patientId || id,
+          firstName: res.firstName || res.firstname || '',
+          lastName: res.lastName || res.lastname || '',
+          birthDate: res.birthDate || res.dob || '',
+          email: res.email || '',
+          phone: res.phone || res.phoneNumber || ''
+        };
+        setPatient(mapped);
+      } else {
+        setPatientError('Failed to fetch patient');
+      }
+    } catch (error) {
+      console.error('Error fetching patient:', error);
+      setPatientError('Failed to fetch patient');
+    } finally {
+      setPatientLoading(false);
+    }
   };
 
-  const mockMedicalRecords: MedicalRecord[] = [
-    {
-      id: '1',
-      patientId: id || '',
-      date: '2024-01-15',
-      type: 'Lab Results',
-      provider: 'Dr. Smith',
-      description: 'Complete Blood Count - Normal results',
-      details: {},
-      file: ''
-    },
-    {
-      id: '2',
-      patientId: id || '',
-      date: '2024-01-10',
-      type: 'Visit Notes',
-      provider: 'Dr. Johnson',
-      description: 'Annual physical examination',
-      details: {},
-      file: ''
+  const fetchMedicalRecords = async () => {
+    if (!id) return;
+    setRecordsLoading(true);
+    setRecordsError(null);
+    try {
+      const res = await getDocApi(id, token);
+      if (res?.types) {
+        const records: MedicalRecord[] = res.types.map((doc: any) => ({
+          id: String(doc.id),
+          patientId: String(doc.patient_id),
+          date: doc.created,
+          type: doc.description || 'Document',
+          provider: doc.provider || '',
+          description: doc.description || '',
+          details: {},
+          file: doc.aws_url || '',
+          attachmentUrl: doc.aws_url || ''
+        }));
+        setMedicalRecords(records);
+      } else {
+        setRecordsError('Failed to fetch medical records');
+      }
+    } catch (error) {
+      console.error('Error fetching medical records:', error);
+      setRecordsError('Failed to fetch medical records');
+    } finally {
+      setRecordsLoading(false);
     }
-  ];
+  };
   const fetchEncounters = async () => {
     setIsLoading(true);
     try {
@@ -190,11 +222,24 @@ const PatientEncounter = () => {
    useEffect(() => {
       if (id) {
         fetchEncounters();
+        fetchPatient();
+        fetchMedicalRecords();
       }
-    }, [token]);
+    }, [id, token]);
 
   return (
     <div>
+      {(patientLoading || recordsLoading) && (
+        <div className="flex items-center mb-4 text-sm text-gray-600">
+          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+          Loading patient information...
+        </div>
+      )}
+      {(patientError || recordsError) && (
+        <div className="mb-4 text-sm text-red-500">
+          {patientError || recordsError}
+        </div>
+      )}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Patient Encounters</h2>
         <Button
@@ -289,21 +334,25 @@ const PatientEncounter = () => {
         />
       )}
         {/* Fax Dialog */}
-        <EncounterFaxDialog
-          encounter={selectedEncounterForAction}
-          patient={mockPatient}
-          open={isFaxDialogOpen}
-          onOpenChange={setIsFaxDialogOpen}
-        />
+        {patient && (
+          <EncounterFaxDialog
+            encounter={selectedEncounterForAction}
+            patient={patient}
+            open={isFaxDialogOpen}
+            onOpenChange={setIsFaxDialogOpen}
+          />
+        )}
 
         {/* Referral Dialog */}
-        <EncounterReferralDialog
-          encounter={selectedEncounterForAction}
-          patient={mockPatient}
-          medicalRecords={mockMedicalRecords}
-          open={isReferralDialogOpen}
-          onOpenChange={setIsReferralDialogOpen}
-        />
+        {patient && (
+          <EncounterReferralDialog
+            encounter={selectedEncounterForAction}
+            patient={patient}
+            medicalRecords={medicalRecords}
+            open={isReferralDialogOpen}
+            onOpenChange={setIsReferralDialogOpen}
+          />
+        )}
 
         {/* Smart Encounter Workflow */}
         <SmartEncounterWorkflow
