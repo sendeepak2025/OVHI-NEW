@@ -125,6 +125,20 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
     return () => clearInterval(interval);
   }, [isTimerRunning, sessionStartTime]);
 
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedPatient(null);
+      setSelectedTemplate(null);
+      setEncounterType('');
+      setSessionStartTime(null);
+      setElapsedTime(0);
+      setIsTimerRunning(false);
+      setSoapData(null);
+      setCurrentStage('setup');
+    }
+  }, [isOpen]);
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
