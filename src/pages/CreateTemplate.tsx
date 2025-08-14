@@ -16,17 +16,7 @@ import {
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
-
-interface Template {
-  template_id?: number; // Optional as it's not present during creation
-  template_name: string;
-  encounter_type: string;
-  default_reason: string;
-  default_notes: string;
-  default_diagnosis_codes: string;
-  default_procedure_codes: string;
-  // 'created' field is deliberately excluded from this interface for frontend form data
-}
+import type { Template } from "@/types/encounter";
 
 const CreateTemplate = () => {
   const { token } = useSelector((state: RootState) => state.auth);

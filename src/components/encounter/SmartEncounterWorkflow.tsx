@@ -25,6 +25,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { getTemplateApi } from "@/services/operations/encounter";
 import StreamlinedSoapInterface from './StreamlinedSoapInterface';
+import type { Template } from "@/types/encounter";
 
 interface Patient {
   id: string;
@@ -35,16 +36,6 @@ interface Patient {
   conditions?: string[];
   allergies?: string[];
   medications?: string[];
-}
-
-interface Template {
-  template_id: number;
-  template_name: string;
-  encounter_type: string;
-  default_reason: string;
-  default_notes: string;
-  default_diagnosis_codes: string;
-  default_procedure_codes: string;
 }
 
 interface EncounterWorkflowProps {
