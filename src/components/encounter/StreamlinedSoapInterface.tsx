@@ -54,6 +54,10 @@ interface StreamlinedSoapInterfaceProps {
   patientContext?: PatientContext;
   onSave?: (data: SOAPData) => void;
   onComplete?: (data: SOAPData) => void;
+  initialReason?: string;
+  initialNotes?: string;
+  initialDiagnoses?: any[];
+  initialProcedures?: any[];
 }
 
 interface EncounterData {
@@ -163,33 +167,37 @@ export const StreamlinedSoapInterface: React.FC<StreamlinedSoapInterfaceProps> =
   appointment,
   patientContext,
   onSave,
-  onComplete
+  onComplete,
+  initialReason,
+  initialNotes,
+  initialDiagnoses,
+  initialProcedures
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [soapData, setSoapData] = useState<SOAPData>({
-    subjective: '',
+    subjective: initialReason || '',
     objective: '',
     assessment: '',
-    plan: ''
+    plan: initialNotes || ''
   });
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
-  const [selectedDiagnoses, setSelectedDiagnoses] = useState<any[]>([]);
+  const [selectedDiagnoses, setSelectedDiagnoses] = useState<any[]>(initialDiagnoses || []);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [physicalFindings, setPhysicalFindings] = useState<any[]>([]);
   const [vitalSigns, setVitalSigns] = useState<any>({});
   const [useAdvancedMode, setUseAdvancedMode] = useState(false);
-  const [selectedProcedures, setSelectedProcedures] = useState<any[]>([]);
+  const [selectedProcedures, setSelectedProcedures] = useState<any[]>(initialProcedures || []);
   const [encounterData, setEncounterData] = useState<EncounterData>({
     patientId: patientContext?.name || '',
     providerId: 'dr-001',
     appointmentId: appointment?.id,
-    subjective: '',
+    subjective: initialReason || '',
     objective: '',
     assessment: '',
-    plan: '',
-    diagnoses: [],
-    procedures: [],
+    plan: initialNotes || '',
+    diagnoses: initialDiagnoses || [],
+    procedures: initialProcedures || [],
     status: 'draft'
   });
 

@@ -374,13 +374,27 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
                 name: selectedPatient.name,
                 age: selectedPatient.age,
                 gender: selectedPatient.gender,
-                chiefComplaint: appointment?.reason || 'Follow-up visit',
+                chiefComplaint: selectedTemplate?.default_reason || appointment?.reason || 'Follow-up visit',
                 vitals: {},
                 allergies: selectedPatient.allergies || [],
                 medications: selectedPatient.medications || [],
                 medicalHistory: selectedPatient.conditions || [],
                 conditions: selectedPatient.conditions || []
               }}
+              initialReason={selectedTemplate?.default_reason}
+              initialNotes={selectedTemplate?.default_notes}
+              initialDiagnoses={selectedTemplate?.default_diagnosis_codes
+                ? selectedTemplate.default_diagnosis_codes
+                    .split(',')
+                    .filter(Boolean)
+                    .map(code => ({ code: code.trim(), name: code.trim() }))
+                : undefined}
+              initialProcedures={selectedTemplate?.default_procedure_codes
+                ? selectedTemplate.default_procedure_codes
+                    .split(',')
+                    .filter(Boolean)
+                    .map(code => ({ code: code.trim(), name: code.trim() }))
+                : undefined}
               onSave={handleSoapSave}
               onComplete={handleEncounterComplete}
             />
