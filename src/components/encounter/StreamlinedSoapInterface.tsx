@@ -29,6 +29,7 @@ import { UnifiedDiagnosisManager } from "@/components/provider/UnifiedDiagnosisM
 import AutoSaveEncounterManager from "./AutoSaveEncounterManager";
 import SmartCPTSuggestions from "@/components/billing/SmartCPTSuggestions";
 import AdvancedDocumentGenerator from "./AdvancedDocumentGenerator";
+import type { Template } from "@/types/encounter";
 
 interface SOAPData {
   subjective: string;
@@ -54,6 +55,7 @@ interface StreamlinedSoapInterfaceProps {
   patientContext?: PatientContext;
   onSave?: (data: SOAPData) => void;
   onComplete?: (data: SOAPData) => void;
+  template?: Template | null;
 }
 
 interface EncounterData {
@@ -163,7 +165,8 @@ export const StreamlinedSoapInterface: React.FC<StreamlinedSoapInterfaceProps> =
   appointment,
   patientContext,
   onSave,
-  onComplete
+  onComplete,
+  template
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [soapData, setSoapData] = useState<SOAPData>({
@@ -192,6 +195,41 @@ export const StreamlinedSoapInterface: React.FC<StreamlinedSoapInterfaceProps> =
     procedures: [],
     status: 'draft'
   });
+
+  // Apply template defaults when provided
+  useEffect(() => {
+    if (template) {
+      setSoapData({
+        subjective: template.default_reason || '',
+        objective: template.default_notes || '',
+        assessment: '',
+        plan: ''
+      });
+
+      const diagnosisCodes = template.default_diagnosis_codes
+        ? template.default_diagnosis_codes
+            .split(',')
+            .map(code => code.trim())
+            .filter(Boolean)
+            .map(code => ({ code, name: code }))
+        : [];
+      const procedureCodes = template.default_procedure_codes
+        ? template.default_procedure_codes
+            .split(',')
+            .map(code => code.trim())
+            .filter(Boolean)
+            .map(code => ({ code, description: '', category: '' }))
+        : [];
+      setSelectedDiagnoses(diagnosisCodes);
+      setSelectedProcedures(procedureCodes);
+      setCurrentStep(0);
+    } else {
+      setSoapData({ subjective: '', objective: '', assessment: '', plan: '' });
+      setSelectedDiagnoses([]);
+      setSelectedProcedures([]);
+      setCurrentStep(0);
+    }
+  }, [template]);
 
   // Auto-save functionality - Updated for encounter data
   useEffect(() => {

@@ -78,6 +78,12 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
   const [soapData, setSoapData] = useState(null);
   const { token } = useSelector((state: RootState) => state.auth);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [templateDefaults, setTemplateDefaults] = useState({
+    reason: '',
+    notes: '',
+    diagnoses: [] as string[],
+    procedures: [] as string[],
+  });
 
   // Mock data - replace with actual API calls
   const mockPatients: Patient[] = [
@@ -104,6 +110,37 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
     };
     fetchTemplates();
   }, [token]);
+
+  // Update defaults when template changes
+  useEffect(() => {
+    if (selectedTemplate) {
+      setTemplateDefaults({
+        reason: selectedTemplate.default_reason || '',
+        notes: selectedTemplate.default_notes || '',
+        diagnoses: selectedTemplate.default_diagnosis_codes
+          ? selectedTemplate.default_diagnosis_codes
+              .split(',')
+              .map(c => c.trim())
+              .filter(Boolean)
+          : [],
+        procedures: selectedTemplate.default_procedure_codes
+          ? selectedTemplate.default_procedure_codes
+              .split(',')
+              .map(c => c.trim())
+              .filter(Boolean)
+          : [],
+      });
+      setSoapData({
+        subjective: selectedTemplate.default_reason || '',
+        objective: selectedTemplate.default_notes || '',
+        assessment: '',
+        plan: '',
+      });
+    } else {
+      setTemplateDefaults({ reason: '', notes: '', diagnoses: [], procedures: [] });
+      setSoapData(null);
+    }
+  }, [selectedTemplate]);
 
   // Timer logic
   useEffect(() => {
@@ -370,11 +407,12 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
           {currentStage === 'documentation' && selectedPatient && (
             <StreamlinedSoapInterface
               appointment={appointment}
+              template={selectedTemplate}
               patientContext={{
                 name: selectedPatient.name,
                 age: selectedPatient.age,
                 gender: selectedPatient.gender,
-                chiefComplaint: appointment?.reason || 'Follow-up visit',
+                chiefComplaint: templateDefaults.reason || appointment?.reason || 'Follow-up visit',
                 vitals: {},
                 allergies: selectedPatient.allergies || [],
                 medications: selectedPatient.medications || [],
