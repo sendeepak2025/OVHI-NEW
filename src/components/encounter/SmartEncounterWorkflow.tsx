@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   Calendar,
   Clock,
   User,
@@ -18,9 +17,13 @@ import {
   Pause,
   RotateCcw,
   Settings,
-  Zap
+  Zap,
+  Heart
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store";
+import { getTemplateApi } from "@/services/operations/encounter";
 import StreamlinedSoapInterface from './StreamlinedSoapInterface';
 
 interface Patient {
@@ -35,11 +38,13 @@ interface Patient {
 }
 
 interface Template {
-  id: string;
-  name: string;
-  specialty: string;
-  type: string;
-  estimatedTime: number;
+  template_id: number;
+  template_name: string;
+  encounter_type: string;
+  default_reason: string;
+  default_notes: string;
+  default_diagnosis_codes: string;
+  default_procedure_codes: string;
 }
 
 interface EncounterWorkflowProps {
@@ -50,6 +55,9 @@ interface EncounterWorkflowProps {
 }
 
 const ENCOUNTER_TYPES = [
+  { value: 'primary_care_follow_up', label: 'Primary Care Follow-up', time: 15, icon: Stethoscope },
+  { value: 'cardiology_consultation', label: 'Cardiology Consultation', time: 45, icon: Heart },
+  { value: 'dermatology_procedure', label: 'Dermatology Procedure', time: 60, icon: Zap },
   { value: 'routine', label: 'Routine Follow-up', time: 15, icon: Calendar },
   { value: 'annual', label: 'Annual Physical', time: 30, icon: Clipboard },
   { value: 'acute', label: 'Acute Visit', time: 20, icon: Stethoscope },
@@ -77,6 +85,8 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [soapData, setSoapData] = useState(null);
+  const { token } = useSelector((state: RootState) => state.auth);
+  const [templates, setTemplates] = useState<Template[]>([]);
 
   // Mock data - replace with actual API calls
   const mockPatients: Patient[] = [
@@ -92,22 +102,17 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
     }
   ];
 
-  const mockTemplates: Template[] = [
-    {
-      id: '1',
-      name: 'Primary Care Follow-up',
-      specialty: 'Family Medicine',
-      type: 'routine',
-      estimatedTime: 15
-    },
-    {
-      id: '2',
-      name: 'Annual Physical Exam',
-      specialty: 'Family Medicine',
-      type: 'annual',
-      estimatedTime: 30
-    }
-  ];
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await getTemplateApi(token);
+        setTemplates(res?.data || []);
+      } catch (error) {
+        console.error('Failed to fetch templates:', error);
+      }
+    };
+    fetchTemplates();
+  }, [token]);
 
   // Timer logic
   useEffect(() => {
@@ -333,16 +338,22 @@ export const SmartEncounterWorkflow: React.FC<EncounterWorkflowProps> = ({
                 </CardHeader>
                 <CardContent>
                   <Select onValueChange={(value) => {
-                    const template = mockTemplates.find(t => t.id === value);
+                    const template = templates.find(t => t.template_id.toString() === value);
                     setSelectedTemplate(template || null);
+                    if (template) {
+                      setEncounterType(template.encounter_type);
+                    }
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a template or start blank" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name} - {template.specialty}
+                      {templates.map((template) => (
+                        <SelectItem
+                          key={template.template_id}
+                          value={template.template_id.toString()}
+                        >
+                          {template.template_name} - {template.encounter_type}
                         </SelectItem>
                       ))}
                     </SelectContent>
